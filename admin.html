@@ -368,9 +368,9 @@ async function importDefault(){
 }
 function optToText(c){return (c||[]).map(x=>x[1]?x[0]+' +'+x[1]:x[0]).join('\n')}
 function textToOpt(t){return String(t||'').split('\n').map(s=>s.trim()).filter(Boolean).map(s=>{const m=/^(.*?)\s*[+＋]\s*(\d+)$/.exec(s);return m&&m[1]?[m[1].trim(),+m[2]]:[s,0]})}
-const PRESETS={'辣度':{n:'辣度',m:0,c:[['不辣',0],['小辣',0],['中辣',0]]},'冰量':{n:'冰量',m:0,c:[['正常冰',0],['少冰',0],['去冰',0]]},'甜度':{n:'甜度',m:0,c:[['全糖',0],['半糖',0],['無糖',0]]},'加料':{n:'加料',m:1,c:[['加蛋',15]]}};
+const PRESETS={'辣度':{n:'辣度',m:0,c:[['不辣',0],['小辣',0],['中辣',0]]},'冰量':{n:'冰量',m:0,c:[['正常冰',0],['少冰',0],['去冰',0]]},'甜度':{n:'甜度',m:0,c:[['全糖',0],['半糖',0],['無糖',0]]},'加料':{n:'加料',m:1,c:[['加蛋',15]]},'加購甜品':{n:'加購手工甜品',m:1,c:[]},'加購飲料':{n:'加購飲料',m:1,c:[]}};
 function editProduct(p){
-  const isNew=!p;p=p?JSON.parse(JSON.stringify(p)):{id:'',cat:'',name:'',price:'',status:'上架',img:'',opts:[]};
+  const isNew=!p;p=p?JSON.parse(JSON.stringify(p)):{id:'',cat:'',name:'',price:'',status:'上架',img:'',ing:'',opts:[]};
   let img=p.img||'';
   const M=document.createElement('div');M.className='mask';
   const cs=cleanCats();
@@ -379,17 +379,18 @@ function editProduct(p){
   '<label class="f">價格（元）</label><input type="number" id="ePrice" min="0" inputmode="numeric">'+
   '<label class="f">分類（例如：主食、湯品、飲料）</label><input type="text" id="eCat" list="eCats" maxlength="20"><datalist id="eCats">'+cs.filter(Boolean).map(c=>'<option value="'+esc(c)+'">').join('')+'</datalist>'+
   '<label class="f">狀態</label><select id="eSt">'+STS.map(s=>'<option>'+s+'</option>').join('')+'</select>'+
+  '<label class="f">食物成分（選填，客人會看到）</label><textarea id="eIng" maxlength="300" rows="3" placeholder="例如：雞腿肉、洋蔥、醬油、米酒、白芝麻" style="width:100%"></textarea>'+
   '<label class="f">照片（選填）</label><div class="imgrow"><img id="eImg" alt="" style="display:none"><div><input type="file" id="eFile" accept="image/*"><div><button type="button" id="eImgX" style="margin-top:6px;padding:2px 10px;font-size:12px">移除照片</button></div></div></div>'+
-  '<label class="f">客製選項（例如辣度、加料）</label><div id="eGrps"></div>'+
-  '<div class="pre"><button type="button" data-p="new">＋ 自訂選項組</button><button type="button" data-p="辣度">辣度</button><button type="button" data-p="冰量">冰量</button><button type="button" data-p="甜度">甜度</button><button type="button" data-p="加料">加料</button></div>'+
+  '<label class="f">客製選項與加購（例如辣度、加料、加購甜品／飲料）</label><div id="eGrps"></div>'+
+  '<div class="pre"><button type="button" data-p="new">＋ 自訂選項組</button><button type="button" data-p="辣度">辣度</button><button type="button" data-p="冰量">冰量</button><button type="button" data-p="甜度">甜度</button><button type="button" data-p="加料">加料</button><button type="button" data-p="加購甜品">＋ 加購甜品</button><button type="button" data-p="加購飲料">＋ 加購飲料</button></div>'+
   '<div class="dfoot">'+(isNew?'':'<button class="del" type="button" id="eDel">刪除</button>')+'<button type="button" id="eCancel">取消</button><button type="button" class="pri" id="eSave">儲存</button></div></div>';
   document.body.append(M);
   const $$=id=>M.querySelector('#'+id);
-  $$('eName').value=p.name;$$('ePrice').value=p.price;$$('eCat').value=p.cat||(cs[0]||'');$$('eSt').value=p.status||'上架';
+  $$('eName').value=p.name;$$('eIng').value=p.ing||'';$$('ePrice').value=p.price;$$('eCat').value=p.cat||(cs[0]||'');$$('eSt').value=p.status||'上架';
   let groups=(p.opts||[]).map(g=>({n:g.n,m:g.m?1:0,t:optToText(g.c)}));
   function drawImg(){const e=$$('eImg');if(img){e.src=img;e.style.display=''}else e.style.display='none'}
   function drawG(){
-    $$('eGrps').innerHTML=groups.map((g,i)=>'<div class="grp" data-i="'+i+'"><div class="r"><input type="text" class="gn" placeholder="選項組名稱，例如：辣度" value="'+esc(g.n)+'" maxlength="20"><label style="font-size:13px;white-space:nowrap"><input type="checkbox" class="gm"'+(g.m?' checked':'')+'> 可複選</label><button type="button" class="gx" style="padding:2px 10px">✕</button></div><textarea class="gt" placeholder="每行一個選項；要加價就寫「加蛋 +15」">'+esc(g.t)+'</textarea></div>').join('')||'<div class="mut" style="margin:4px 0">沒有客製選項也可以。</div>';
+    $$('eGrps').innerHTML=groups.map((g,i)=>'<div class="grp" data-i="'+i+'"><div class="r"><input type="text" class="gn" placeholder="選項組名稱，例如：辣度" value="'+esc(g.n)+'" maxlength="20"><label style="font-size:13px;white-space:nowrap"><input type="checkbox" class="gm"'+(g.m?' checked':'')+'> 可複選</label><button type="button" class="gx" style="padding:2px 10px">✕</button></div><textarea class="gt" placeholder="每行一個選項；要加價就寫「手工布丁 +30」">'+esc(g.t)+'</textarea></div>').join('')||'<div class="mut" style="margin:4px 0">沒有客製選項也可以。</div>';
   }
   function syncG(){M.querySelectorAll('.grp').forEach(el=>{const g=groups[+el.dataset.i];g.n=el.querySelector('.gn').value;g.m=el.querySelector('.gm').checked?1:0;g.t=el.querySelector('.gt').value})}
   drawImg();drawG();
@@ -408,7 +409,7 @@ function editProduct(p){
       const opts=groups.filter(g=>g.n.trim()).map(g=>({n:g.n.trim(),m:g.m?1:0,c:textToOpt(g.t)})).filter(g=>g.c.length);
       const cat=$$('eCat').value.trim()||'其他';
       let sort=p.sort;if(isNew)sort=(menu.reduce((m,x)=>Math.max(m,+x.sort||0),0))+1;
-      const item={id:p.id,cat,name,price,status:$$('eSt').value,sort,img,opts};
+      const item={id:p.id,cat,name,price,status:$$('eSt').value,sort,img,opts,ing:$$('eIng').value.trim().slice(0,300)};
       M.remove();
       const before=menu.length;
       saveAndReload({action:'menu_upsert',items:[item]},m=>isNew?m.length>before||m.some(x=>x.name===name&&x.cat===cat&&x.price===price):(m.find(x=>x.id===p.id)||{}).name===name).then(ok=>ok&&toast('已儲存'));

@@ -26,7 +26,7 @@ label{display:block;font-size:13px;color:var(--mut);margin-top:12px}
 .tabs button{white-space:nowrap}
 .item{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
 .item b{font-weight:500}.item span{color:var(--mut);font-size:13px}
-.item button{padding:6px 14px}
+.item button{padding:6px 14px;flex:none;margin-left:10px}.item>div:first-child{flex:1;min-width:0}.ing{font-size:12px;color:var(--mut);line-height:1.5;margin-top:3px;white-space:pre-line}
 .bar{position:fixed;left:0;right:0;bottom:0;padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--line);z-index:3}
 .bar .w{padding:0}
 main{padding-bottom:110px}
@@ -54,7 +54,7 @@ main{padding-bottom:110px}
 <div class="bar"><div class="w" style="max-width:680px;margin:0 auto"><button class="pri" id="cartBtn" onclick="openCart()">購物車（0）　NT$0</button></div></div>
 
 <div class="sheet" id="sOpt"><div>
-<h2 id="oT"></h2><div id="oG"></div>
+<h2 id="oT"></h2><div id="oI" class="ing" style="margin:-6px 0 10px"></div><div id="oG"></div>
 <label>備註<input id="oN" placeholder="例如：麵煮軟一點"></label>
 <div class="tot" id="oP"></div><button class="pri" onclick="addCart()">加入購物車</button>
 <button style="width:100%;margin-top:8px;border:0" onclick="closeS()">取消</button></div></div>
@@ -125,7 +125,7 @@ function renderTabs(){
   if(!items.length){L.innerHTML='<p style="color:var(--mut)">目前沒有上架商品</p>';return}
   items.forEach(p=>{
     const d=document.createElement('div');d.className='item';
-    d.innerHTML=`<div style="display:flex;gap:12px;align-items:center">${p.img?`<img src="${esc(p.img)}" width="64" height="64" style="border-radius:12px;object-fit:cover" alt="">`:''}<div><b>${esc(p.name)}</b><br><span>NT$${esc(p.price)}</span></div></div>`;
+    d.innerHTML=`<div style="display:flex;gap:12px;align-items:center">${p.img?`<img src="${esc(p.img)}" width="64" height="64" style="border-radius:12px;object-fit:cover" alt="">`:''}<div style="min-width:0"><b>${esc(p.name)}</b><br><span>NT$${esc(p.price)}</span>${p.ing?`<div class="ing">成分：${esc(p.ing)}</div>`:''}</div></div>`;
     const b=document.createElement('button');
     if(p.status==='售完'){b.textContent='已售完';b.disabled=true;b.style.opacity='.5';b.style.cursor='default'}
     else{b.textContent='加入 ＋';b.onclick=()=>openOpt(p)}
@@ -136,7 +136,7 @@ function openOpt(p){
   const opts=(p.opts||[]).filter(g=>g&&g.n&&Array.isArray(g.c)&&g.c.length);
   cur={name:p.name,base:+p.price||0,opts,sel:{}};
   opts.forEach(g=>{cur.sel[g.n]=g.m?[]:[g.c[0][0]]});
-  $('oT').textContent=p.name;$('oN').value='';drawOpt();$('sOpt').classList.add('show');
+  $('oT').textContent=p.name;$('oI').textContent=p.ing?'成分：'+p.ing:'';$('oN').value='';drawOpt();$('sOpt').classList.add('show');
 }
 function optPrice(){let p=cur.base;cur.opts.forEach(g=>g.c.forEach(([l,x])=>{if(cur.sel[g.n].includes(l))p+=x}));return p}
 function drawOpt(){const box=$('oG');box.innerHTML='';cur.opts.forEach(g=>{const s=document.createElement('div');s.className='grp';s.innerHTML=`<b>${esc(g.n)}</b>${g.m?' <span style="color:var(--mut);font-size:12px">可複選</span>':''}`;const w=document.createElement('div');g.c.forEach(([l,x])=>{const b=document.createElement('button');const on=cur.sel[g.n].includes(l);b.className=on?'on':'';b.textContent=l+(x?` +${x}`:'');b.onclick=()=>{const a=cur.sel[g.n];if(g.m){on?a.splice(a.indexOf(l),1):a.push(l)}else cur.sel[g.n]=[l];drawOpt()};w.append(b)});s.append(w);box.append(s)});$('oP').textContent='NT$'+optPrice()}
