@@ -26,7 +26,7 @@ label{display:block;font-size:13px;color:var(--mut);margin-top:12px}
 .tabs button{white-space:nowrap}
 .item{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
 .item b{font-weight:500}.item span{color:var(--mut);font-size:13px}
-.item button{padding:6px 14px;flex:none;margin-left:10px}.item>div:first-child{flex:1;min-width:0}.ing{font-size:12px;color:var(--mut);line-height:1.5;margin-top:3px;white-space:pre-line}
+.sec{font-size:17px;font-weight:500;margin:22px 0 2px;scroll-margin-top:70px}.addtag{font-weight:400;font-size:12px;color:var(--ac)}.item button{padding:6px 14px;flex:none;margin-left:10px}.item>div:first-child{flex:1;min-width:0}.ing{font-size:12px;color:var(--mut);line-height:1.5;margin-top:3px;white-space:pre-line}
 .bar{position:fixed;left:0;right:0;bottom:0;padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--line);z-index:3}
 .bar .w{padding:0}
 main{padding-bottom:110px}
@@ -115,37 +115,46 @@ async function loadMenu(){
   }catch(e){if(!PRODUCTS)PRODUCTS=DEFAULT_MENU}
   renderTabs();
 }
+const MAIN_RE=/主食/,ADD_RE=/飲|甜品|甜點/,DISC=10;
 function renderTabs(){
   if(!PRODUCTS)return;
-  const cs=cats();if(!cs.includes(cat))cat=cs[0]||'';
+  const cs=cats();
   const tb=$('tabs');tb.innerHTML='';
-  cs.forEach(k=>{const b=document.createElement('button');b.textContent=k||'其他';b.className=k===cat?'on':'';b.onclick=()=>{cat=k;renderTabs()};tb.append(b)});
   const L=$('list');L.innerHTML='';
-  const items=PRODUCTS.filter(p=>p.cat===cat);
-  if(!items.length){L.innerHTML='<p style="color:var(--mut)">目前沒有上架商品</p>';return}
-  items.forEach(p=>{
-    const d=document.createElement('div');d.className='item';
-    d.innerHTML=`<div style="display:flex;gap:12px;align-items:center">${p.img?`<img src="${esc(p.img)}" width="64" height="64" style="border-radius:12px;object-fit:cover" alt="">`:''}<div style="min-width:0"><b>${esc(p.name)}</b><br><span>NT$${esc(p.price)}</span>${p.ing?`<div class="ing">成分：${esc(p.ing)}</div>`:''}</div></div>`;
-    const b=document.createElement('button');
-    if(p.status==='售完'){b.textContent='已售完';b.disabled=true;b.style.opacity='.5';b.style.cursor='default'}
-    else{b.textContent='加入 ＋';b.onclick=()=>openOpt(p)}
-    d.append(b);L.append(d);
+  if(!PRODUCTS.length){L.innerHTML='<p style="color:var(--mut)">目前沒有上架商品</p>';return}
+  cs.forEach((k,ci)=>{
+    const b=document.createElement('button');b.textContent=k||'其他';
+    b.onclick=()=>{[...tb.children].forEach(x=>x.classList.toggle('on',x===b));const e=document.getElementById('cat'+ci);if(e)e.scrollIntoView({behavior:'smooth',block:'start'})};
+    tb.append(b);
+    const h=document.createElement('h3');h.className='sec';h.id='cat'+ci;h.textContent=k||'其他';
+    if(ADD_RE.test(k||''))h.innerHTML+=` <small class="addtag">搭配主食加購，每份折 NT$${DISC}</small>`;
+    L.append(h);
+    PRODUCTS.filter(p=>p.cat===k).forEach(p=>{
+      const d=document.createElement('div');d.className='item';
+      d.innerHTML=`<div style="display:flex;gap:12px;align-items:center">${p.img?`<img src="${esc(p.img)}" width="64" height="64" style="border-radius:12px;object-fit:cover" alt="">`:''}<div style="min-width:0"><b>${esc(p.name)}</b><br><span>NT$${esc(p.price)}</span>${p.ing?`<div class="ing">成分：${esc(p.ing)}</div>`:''}</div></div>`;
+      const bt=document.createElement('button');
+      if(p.status==='售完'){bt.textContent='已售完';bt.disabled=true;bt.style.opacity='.5';bt.style.cursor='default'}
+      else{bt.textContent='加入 ＋';bt.onclick=()=>openOpt(p)}
+      d.append(bt);L.append(d);
+    });
   });
 }
 function openOpt(p){
   const opts=(p.opts||[]).filter(g=>g&&g.n&&Array.isArray(g.c)&&g.c.length);
-  cur={name:p.name,base:+p.price||0,opts,sel:{}};
+  cur={name:p.name,cat:p.cat||'',base:+p.price||0,opts,sel:{}};
   opts.forEach(g=>{cur.sel[g.n]=g.m?[]:[g.c[0][0]]});
   $('oT').textContent=p.name;$('oI').textContent=p.ing?'成分：'+p.ing:'';$('oN').value='';drawOpt();$('sOpt').classList.add('show');
 }
 function optPrice(){let p=cur.base;cur.opts.forEach(g=>g.c.forEach(([l,x])=>{if(cur.sel[g.n].includes(l))p+=x}));return p}
 function drawOpt(){const box=$('oG');box.innerHTML='';cur.opts.forEach(g=>{const s=document.createElement('div');s.className='grp';s.innerHTML=`<b>${esc(g.n)}</b>${g.m?' <span style="color:var(--mut);font-size:12px">可複選</span>':''}`;const w=document.createElement('div');g.c.forEach(([l,x])=>{const b=document.createElement('button');const on=cur.sel[g.n].includes(l);b.className=on?'on':'';b.textContent=l+(x?` +${x}`:'');b.onclick=()=>{const a=cur.sel[g.n];if(g.m){on?a.splice(a.indexOf(l),1):a.push(l)}else cur.sel[g.n]=[l];drawOpt()};w.append(b)});s.append(w);box.append(s)});$('oP').textContent='NT$'+optPrice()}
-function addCart(){const opts=Object.values(cur.sel).flat().join('／'),note=$('oN').value.trim(),price=optPrice();const k=cur.name+opts+note;const f=cart.find(x=>x.k===k);f?f.qty++:cart.push({k,name:cur.name,opts,note,price,qty:1});closeS();upd()}
-const total=()=>cart.reduce((s,x)=>s+x.price*x.qty,0);
+function addCart(){const opts=Object.values(cur.sel).flat().join('／'),note=$('oN').value.trim(),price=optPrice();const k=cur.name+opts+note;const f=cart.find(x=>x.k===k);f?f.qty++:cart.push({k,name:cur.name,cat:cur.cat,opts,note,price,qty:1});closeS();upd()}
+const discN=()=>{let m=0,a=0;cart.forEach(x=>{if(MAIN_RE.test(x.cat||''))m+=x.qty;else if(ADD_RE.test(x.cat||''))a+=x.qty});return Math.min(m,a)};
+const total=()=>cart.reduce((s,x)=>s+x.price*x.qty,0)-discN()*DISC;
 function upd(){const c=cart.reduce((s,x)=>s+x.qty,0);$('cartBtn').textContent=`購物車（${c}）　NT$${total()}`}
 function openCart(){drawCart();$('sCart').classList.add('show')}
 function drawCart(){const L=$('cL');L.innerHTML='';if(!cart.length){L.innerHTML='<p style="color:var(--mut)">購物車是空的</p>'}
 cart.forEach((x,i)=>{const r=document.createElement('div');r.className='row';r.innerHTML=`<div><b>${esc(x.name)}</b><br><span style="color:var(--mut);font-size:12px">${esc(x.opts)}${x.note?'・'+esc(x.note):''}</span></div>`;const q=document.createElement('div');q.className='q';q.innerHTML=`<button>－</button> ${x.qty} <button>＋</button> NT$${x.price*x.qty}`;const [m,p]=q.querySelectorAll('button');m.onclick=()=>{x.qty--;if(!x.qty)cart.splice(i,1);drawCart();upd()};p.onclick=()=>{x.qty++;drawCart();upd()};r.append(q);L.append(r)});
+const dn=discN();if(dn){const r=document.createElement('div');r.className='row';r.innerHTML=`<div><b>加購折扣</b><br><span style="color:var(--mut);font-size:12px">主食搭配飲品／手工甜品，每份折 NT$${DISC}</span></div><div class="q">${dn} 份　−NT$${dn*DISC}</div>`;L.append(r)}
 $('cT').textContent='合計 NT$'+total();$('cF').classList.toggle('hide',!cart.length)}
 function closeS(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show'))}
 async function getDb(){if(db)return db;try{db=await claude.use('db')}catch(e){}return db}
@@ -154,7 +163,7 @@ if(!name||!/^[0-9+\-\s]{8,15}$/.test(phone)){$('err').textContent='請填寫姓�
 if(!$('when').value){$('err').textContent='請先在頁面上方選擇預約日期與時間';return}
 $('err').textContent='';$('sub').disabled=true;
 const no='A'+String(Date.now()).slice(-6);
-const o={no,name,phone,email:$('fE').value.trim(),note:$('fM').value.trim(),mode,when:$('wd').selectedOptions[0].text+' '+$('wt').selectedOptions[0].text,items:cart.map(({name,opts,note,price,qty})=>({name,opts,note,price,qty})),total:total(),status:'待處理',ts:Date.now()};
+const o={no,name,phone,email:$('fE').value.trim(),note:$('fM').value.trim(),mode,when:$('wd').selectedOptions[0].text+' '+$('wt').selectedOptions[0].text,items:cart.map(({name,opts,note,price,qty})=>({name,opts,note,price,qty})).concat(discN()?[{name:'加購折扣',opts:'主食搭配飲品／手工甜品',note:'',price:-DISC,qty:discN()}]:[]),total:total(),status:'待處理',ts:Date.now()};
 let saved=false;try{await fetch(API,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(o)});saved=true}catch(e){}
 const txt=`【伊利小編購】訂單 ${no}\n${mode}｜${o.when}\n${name} ${phone}\n`+o.items.map(x=>`${x.name}（${x.opts}）x${x.qty} NT$${x.price*x.qty}`).join('\n')+`\n合計 NT$${o.total}`+(o.note?`\n備註：${o.note}`:'');
 $('okT').textContent=saved?`訂單編號 ${no}，店家已收到您的訂單，請依預約時間前來取餐。`:`訂單編號 ${no}。目前無法連線至店家系統，請複製下方內容傳給店家確認。`;
